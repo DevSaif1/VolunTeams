@@ -75,5 +75,6 @@ return [
     'my_certificates' => 'شهاداتي',
 
     'browse_opportunities' => 'تصفح الفرص',
+    'password_reset_requests' => 'طلبات إعادة تعيين كلمة المرور',
 
 ];

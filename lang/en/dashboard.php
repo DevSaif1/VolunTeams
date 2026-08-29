@@ -75,5 +75,6 @@ return [
     'my_certificates' => 'Certificates',
 
     'browse_opportunities' => 'Browse Opportunities',
+    'password_reset_requests' => 'Password Reset Requests',
 
 ];
