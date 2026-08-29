@@ -16,11 +16,11 @@
         </div>
 
         <h1 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Password Reset Requests
+            {{ __('password_reset.title') }}
         </h1>
 
         <p class="mt-2 text-base text-slate-500">
-            Review and manage password reset requests from users.
+            {{ __('password_reset.description') }}
         </p>
 
     </div>
@@ -72,11 +72,11 @@
                 <div>
 
                     <h2 class="text-lg font-bold text-slate-900">
-                        Pending Requests
+                        {{ __('password_reset.pending_requests') }}
                     </h2>
 
                     <p class="mt-1 text-sm text-slate-500">
-                        Password changes require administrator approval.
+                        {{ __('password_reset.approval_required') }}
                     </p>
 
                 </div>
@@ -99,23 +99,23 @@
                         <tr>
 
                             <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                User
+                                {{ __('password_reset.user') }}
                             </th>
 
                             <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Email
+                                {{ __('password_reset.email') }}
                             </th>
 
                             <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Role
+                                {{ __('password_reset.role') }}
                             </th>
 
                             <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Requested
+                                {{ __('password_reset.requested') }}
                             </th>
 
                             <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Actions
+                                {{ __('password_reset.actions') }}
                             </th>
 
                         </tr>
@@ -129,7 +129,7 @@
 
                             @php
                                 $user = $resetRequest->user;
-                                $role = $user?->getRoleNames()->first() ?? 'Member';
+                                $role = $user?->getRoleNames()->first() ?? __('password_reset.member');
                                 $initials = strtoupper(substr($user?->name ?? '?', 0, 2));
                             @endphp
 
@@ -147,7 +147,7 @@
                                         <div>
 
                                             <div class="font-semibold text-slate-900">
-                                                {{ $user?->name ?? 'Unknown User' }}
+                                                {{ $user?->name ?? __('password_reset.unknown_user') }}
                                             </div>
 
                                         </div>
@@ -159,7 +159,7 @@
 
                                 {{-- Email --}}
                                 <td class="whitespace-nowrap px-6 py-5 text-sm text-slate-600">
-                                    {{ $user?->email ?? 'N/A' }}
+                                    {{ $user?->email ?? __('password_reset.not_available') }}
                                 </td>
 
 
@@ -175,7 +175,7 @@
 
                                 {{-- Requested --}}
                                 <td class="whitespace-nowrap px-6 py-5 text-sm text-slate-600">
-                                    {{ $resetRequest->created_at?->format('M d, Y h:i A') ?? 'N/A' }}
+                                    {{ $resetRequest->created_at?->format('M d, Y h:i A') ?? __('password_reset.not_available') }}
                                 </td>
 
 
@@ -194,9 +194,9 @@
                                             <button
                                                 type="submit"
                                                 class="inline-flex items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700"
-                                                onclick="return confirm('Approve this password reset request?')"
+                                                onclick="return confirm('{{ __('password_reset.approve_confirmation') }}')"
                                             >
-                                                Approve
+                                                {{ __('password_reset.approve') }}
                                             </button>
 
                                         </form>
@@ -212,9 +212,9 @@
                                             <button
                                                 type="submit"
                                                 class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
-                                                onclick="return confirm('Reject this password reset request?')"
+                                                onclick="return confirm('{{ __('password_reset.reject_confirmation') }}')"
                                             >
-                                                Reject
+                                                {{ __('password_reset.reject') }}
                                             </button>
 
                                         </form>
@@ -241,7 +241,7 @@
 
                     @php
                         $user = $resetRequest->user;
-                        $role = $user?->getRoleNames()->first() ?? 'Member';
+                        $role = $user?->getRoleNames()->first() ?? __('password_reset.member');
                         $initials = strtoupper(substr($user?->name ?? '?', 0, 2));
                     @endphp
 
@@ -257,11 +257,11 @@
                             <div class="min-w-0">
 
                                 <div class="font-semibold text-slate-900">
-                                    {{ $user?->name ?? 'Unknown User' }}
+                                    {{ $user?->name ?? __('password_reset.unknown_user') }}
                                 </div>
 
                                 <div class="truncate text-sm text-slate-500">
-                                    {{ $user?->email ?? 'N/A' }}
+                                    {{ $user?->email ?? __('password_reset.not_available') }}
                                 </div>
 
                             </div>
@@ -275,7 +275,7 @@
                             <div>
 
                                 <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                    Role
+                                    {{ __('password_reset.role') }}
                                 </div>
 
                                 <span class="mt-1 inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
@@ -288,11 +288,11 @@
                             <div>
 
                                 <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                    Requested
+                                    {{ __('password_reset.requested') }}
                                 </div>
 
                                 <div class="mt-1 text-sm text-slate-600">
-                                    {{ $resetRequest->created_at?->format('M d, Y h:i A') ?? 'N/A' }}
+                                    {{ $resetRequest->created_at?->format('M d, Y h:i A') ?? __('password_reset.not_available') }}
                                 </div>
 
                             </div>
@@ -313,9 +313,9 @@
                                 <button
                                     type="submit"
                                     class="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700"
-                                    onclick="return confirm('Approve this password reset request?')"
+                                    onclick="return confirm('{{ __('password_reset.approve_confirmation') }}')"
                                 >
-                                    Approve
+                                    {{ __('password_reset.approve') }}
                                 </button>
 
                             </form>
@@ -331,9 +331,9 @@
                                 <button
                                     type="submit"
                                     class="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-100"
-                                    onclick="return confirm('Reject this password reset request?')"
+                                    onclick="return confirm('{{ __('password_reset.reject_confirmation') }}')"
                                 >
-                                    Reject
+                                    {{ __('password_reset.reject') }}
                                 </button>
 
                             </form>
@@ -371,11 +371,11 @@
                 </div>
 
                 <h3 class="mt-4 text-lg font-semibold text-slate-900">
-                    No Pending Requests
+                    {{ __('password_reset.no_pending_requests') }}
                 </h3>
 
                 <p class="mt-2 text-sm text-slate-500">
-                    There are currently no password reset requests waiting for approval.
+                    {{ __('password_reset.no_pending_requests_description') }}
                 </p>
 
             </div>

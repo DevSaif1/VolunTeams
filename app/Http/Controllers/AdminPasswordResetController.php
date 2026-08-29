@@ -36,7 +36,7 @@ class AdminPasswordResetController extends Controller
          */
         if ($passwordResetRequest->status !== 'pending') {
             return back()->withErrors([
-                'request' => 'This password reset request has already been processed.',
+                'request' => __('password_reset.already_processed'),
             ]);
         }
 
@@ -45,7 +45,7 @@ class AdminPasswordResetController extends Controller
          */
         if (! $passwordResetRequest->user) {
             return back()->withErrors([
-                'request' => 'The user associated with this request no longer exists.',
+                'request' => __('password_reset.user_not_found'),
             ]);
         }
 
@@ -55,7 +55,7 @@ class AdminPasswordResetController extends Controller
          */
         if ($passwordResetRequest->user_id === $request->user()->id) {
             return back()->withErrors([
-                'request' => 'You cannot approve a password reset request for your own account.',
+                'request' => __('password_reset.cannot_approve_self'),
             ]);
         }
 
@@ -77,7 +77,7 @@ class AdminPasswordResetController extends Controller
 
         return back()->with(
             'status',
-            'Password reset request approved successfully.'
+            __('password_reset.approved_successfully')
         );
     }
 
@@ -93,7 +93,7 @@ class AdminPasswordResetController extends Controller
          */
         if ($passwordResetRequest->status !== 'pending') {
             return back()->withErrors([
-                'request' => 'This password reset request has already been processed.',
+                'request' => __('password_reset.already_processed'),
             ]);
         }
 
@@ -102,7 +102,7 @@ class AdminPasswordResetController extends Controller
          */
         if (! $passwordResetRequest->user) {
             return back()->withErrors([
-                'request' => 'The user associated with this request no longer exists.',
+                'request' => __('password_reset.user_not_found'),
             ]);
         }
 
@@ -118,7 +118,7 @@ class AdminPasswordResetController extends Controller
 
         return back()->with(
             'status',
-            'Password reset request rejected.'
+            __('password_reset.rejected_successfully')
         );
     }
 }

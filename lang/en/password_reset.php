@@ -27,4 +27,9 @@ return [
     'no_pending_requests' => 'No Pending Requests',
     'no_pending_requests_description' => 'There are currently no password reset requests waiting for approval.',
 
+    'already_processed' => 'This password reset request has already been processed.',
+    'user_not_found' => 'The user associated with this request no longer exists.',
+    'cannot_approve_self' => 'You cannot approve a password reset request for your own account.',
+    'approved_successfully' => 'Password reset request approved successfully.',
+    'rejected_successfully' => 'Password reset request rejected.',
 ];

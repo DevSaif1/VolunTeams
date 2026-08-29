@@ -610,9 +610,9 @@
                             </svg>
                         </span>
 
-                        <span class="text-sm font-semibold leading-5 text-slate-700 transition group-hover:text-emerald-700">
-                            Password Reset
-                        </span>
+                            <span class="text-sm font-semibold leading-5 text-slate-700 transition group-hover:text-emerald-700">
+                                {{ __('dashboard.password_reset_requests') }}
+                            </span>
                     </a>
 
 
