@@ -11,17 +11,20 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\VolunteerHourController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AdminPasswordResetController;
 use App\Http\Controllers\Auth\PasswordResetOtpController;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use App\Models\Opportunity;
 
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
 */
+
 
 // Root Landing Page
 Route::get('/', function () {
@@ -96,9 +99,12 @@ Route::resource('applications', ApplicationController::class)
 Route::resource('volunteer-hours', VolunteerHourController::class)
     ->middleware(['auth', 'verified']);
 
-    // Public Certificate Verification
-Route::get('/verify-certificate/{certificateCode}', [CertificateController::class, 'verify'])
-    ->name('certificates.verify');
+
+// Public Certificate Verification
+Route::get(
+    '/verify-certificate/{certificateCode}',
+    [CertificateController::class, 'verify']
+)->name('certificates.verify');
 
 Route::resource('certificates', CertificateController::class)
     ->middleware(['auth', 'verified']);
@@ -115,6 +121,7 @@ Route::resource('team-members', TeamMemberController::class)
 Route::middleware([
     'auth',
     'verified',
+    'role:Admin',
     'password.confirm',
 ])->group(function () {
 
@@ -130,37 +137,88 @@ Route::middleware([
 });
 
 
-// Password Reset with OTP
+// ========================================================================
+// Admin Password Reset Requests
+// ========================================================================
 //
-// This replaces the default Breeze password-reset flow.
-// The OTP system works for Admin, Team Manager,
-// and Member accounts.
+// Only Admins can view, approve, or reject password reset requests.
+//
+
+Route::middleware([
+    'auth',
+    'verified',
+    'role:Admin',
+])->group(function () {
+
+    // View pending password reset requests
+    Route::get(
+        '/admin/password-reset-requests',
+        [AdminPasswordResetController::class, 'index']
+    )->name('admin.password-reset-requests.index');
+
+    // Approve password reset request
+    Route::post(
+        '/admin/password-reset-requests/{passwordResetRequest}/approve',
+        [AdminPasswordResetController::class, 'approve']
+    )->name('admin.password-reset-requests.approve');
+
+    // Reject password reset request
+    Route::post(
+        '/admin/password-reset-requests/{passwordResetRequest}/reject',
+        [AdminPasswordResetController::class, 'reject']
+    )->name('admin.password-reset-requests.reject');
+
+});
+
+
+// ========================================================================
+// Password Recovery
+// ========================================================================
+//
+// Demo Member:
+//     Forgot Password → Visible Demo OTP
+//
+// Other accounts:
+//     Forgot Password → Admin Approval Request
+//
 
 Route::middleware('guest')->group(function () {
 
     // Forgot Password - show email form
-    Route::get('/forgot-password', [PasswordResetOtpController::class, 'create'])
-        ->name('password.request');
+    Route::get(
+        '/forgot-password',
+        [PasswordResetOtpController::class, 'create']
+    )->name('password.request');
 
-    // Generate OTP
-    Route::post('/forgot-password', [PasswordResetOtpController::class, 'store'])
-        ->name('password.otp.send');
+    // Password recovery request
+    Route::post(
+        '/forgot-password',
+        [PasswordResetOtpController::class, 'store']
+    )->name('password.otp.send');
 
-    // Verify OTP page
-    Route::get('/verify-otp', [PasswordResetOtpController::class, 'showVerify'])
-        ->name('password.otp.verify');
+    // Demo Member OTP verification page
+    Route::get(
+        '/verify-otp',
+        [PasswordResetOtpController::class, 'showVerify']
+    )->name('password.otp.verify');
 
-    // Verify OTP
-    Route::post('/verify-otp', [PasswordResetOtpController::class, 'verify'])
-        ->name('password.otp.check');
+    // Verify Demo Member OTP
+    Route::post(
+        '/verify-otp',
+        [PasswordResetOtpController::class, 'verify']
+    )->name('password.otp.check');
 
-    // New password page
-    Route::get('/reset-password', [PasswordResetOtpController::class, 'showReset'])
-        ->name('password.otp.reset');
+    // Demo Member new password page
+    Route::get(
+        '/reset-password',
+        [PasswordResetOtpController::class, 'showReset']
+    )->name('password.otp.reset');
 
-    // Update password
-    Route::post('/reset-password', [PasswordResetOtpController::class, 'resetPassword'])
-        ->name('password.otp.update');
+    // Demo Member update password
+    Route::post(
+        '/reset-password',
+        [PasswordResetOtpController::class, 'resetPassword']
+    )->name('password.otp.update');
 
 });
 

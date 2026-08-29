@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\PasswordResetOtp;
+use App\Models\PasswordResetRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,7 @@ use Illuminate\View\View;
 class PasswordResetOtpController extends Controller
 {
     /**
-     * Show the email form.
+     * Show the forgot password form.
      */
     public function create(): View
     {
@@ -23,10 +24,13 @@ class PasswordResetOtpController extends Controller
     }
 
     /**
-     * Generate and store a new OTP.
+     * Handle password recovery.
      *
-     * Demo mode:
-     * The OTP is not sent by email yet.
+     * Demo Member:
+     * Uses the visible Demo OTP flow.
+     *
+     * Admin / Manager:
+     * Creates an Admin-approved password reset request.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -42,12 +46,12 @@ class PasswordResetOtpController extends Controller
         $email = Str::lower($validated['email']);
 
         /*
-         * Rate limit OTP requests.
+         * Rate limit password recovery requests.
          *
          * Maximum:
          * 3 requests per 10 minutes per email.
          */
-        $rateLimitKey = 'password-reset-otp:' . $email;
+        $rateLimitKey = 'password-reset:' . $email;
 
         if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
@@ -55,66 +59,278 @@ class PasswordResetOtpController extends Controller
             return back()
                 ->withInput()
                 ->withErrors([
-                    'email' => "Too many OTP requests. Please try again in {$seconds} seconds.",
+                    'email' => "Too many password reset requests. Please try again in {$seconds} seconds.",
                 ]);
         }
 
         RateLimiter::hit($rateLimitKey, 600);
 
         /*
-         * Check whether the account exists.
+         * Find the account.
          */
         $user = User::where('email', $email)->first();
 
         /*
-         * Do not reveal whether an email exists.
+         * Do not reveal whether an account exists.
          */
         if (! $user) {
             return back()
-                ->with('status', 'If an account exists for this email, a verification code has been generated.');
+                ->withInput()
+                ->with(
+                    'status',
+                    'If this account is eligible, a verification code has been generated.'
+                );
         }
 
         /*
-         * Remove previous OTP records for this email.
+         * ==========================================================
+         * DEMO MEMBER FLOW
+         * ==========================================================
+         *
+         * Only the designated Demo Member receives
+         * the visible Demo OTP.
          */
-        PasswordResetOtp::where('email', $email)->delete();
+        if (
+            $user->hasRole('Member') &&
+            $user->is_demo_member
+        ) {
+            /*
+             * Remove previous OTP records.
+             */
+            PasswordResetOtp::where('email', $email)->delete();
+
+            /*
+             * Generate secure 6-digit OTP.
+             */
+            $otp = (string) random_int(100000, 999999);
+
+            /*
+             * Store only the hashed OTP.
+             */
+            PasswordResetOtp::create([
+                'email' => $email,
+                'otp_hash' => Hash::make($otp),
+                'expires_at' => now()->addMinutes(5),
+                'attempts' => 0,
+                'verified_at' => null,
+            ]);
+
+            /*
+             * Demo mode:
+             * Show OTP temporarily through the session.
+             */
+            return redirect()
+                ->route('password.otp.verify')
+                ->with([
+                    'otp_email' => $email,
+                    'demo_otp' => $otp,
+                ]);
+        }
 
         /*
-         * Generate a secure 6-digit OTP.
+         * ==========================================================
+         * ADMIN APPROVAL FLOW
+         * ==========================================================
+         *
+         * Admin and Manager accounts cannot use Demo OTP.
+         *
+         * A password reset request must first be approved
+         * by an Administrator.
          */
-        $otp = (string) random_int(100000, 999999);
 
         /*
-         * Store only the hashed OTP.
+         * ----------------------------------------------------------
+         * 1. Check whether this browser already owns a reset request.
+         * ----------------------------------------------------------
          */
-        PasswordResetOtp::create([
-            'email' => $email,
-            'otp_hash' => Hash::make($otp),
-            'expires_at' => now()->addMinutes(5),
-            'attempts' => 0,
-            'verified_at' => null,
+        $sessionRequestId = session('password_reset_request_id');
+        $sessionRequestToken = session('password_reset_request_token');
+
+        if ($sessionRequestId && $sessionRequestToken) {
+            $existingSessionRequest = PasswordResetRequest::where('id', $sessionRequestId)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if ($existingSessionRequest) {
+                /*
+                 * Verify the session token.
+                 */
+                $validSessionToken = false;
+
+                if ($existingSessionRequest->request_token_hash) {
+                    $validSessionToken = Hash::check(
+                        $sessionRequestToken,
+                        $existingSessionRequest->request_token_hash
+                    );
+                }
+
+                if ($validSessionToken) {
+
+                    /*
+                     * If Admin already approved this request,
+                     * authorize the current session for password reset.
+                     */
+                    if ($existingSessionRequest->status === 'approved') {
+                        session([
+                            'approved_password_reset_request_id' =>
+                                $existingSessionRequest->id,
+
+                            'password_reset_approved_user_id' =>
+                                $user->id,
+                        ]);
+
+                        return redirect()
+                            ->route('password.otp.reset')
+                            ->with(
+                                'status',
+                                'Your password reset request has been approved. You can now choose a new password.'
+                            );
+                    }
+
+                    /*
+                     * If request is still pending.
+                     */
+                    if ($existingSessionRequest->status === 'pending') {
+                        return back()
+                            ->with(
+                                'status',
+                                'A password reset request is already pending administrator approval.'
+                            );
+                    }
+
+                    /*
+                     * If rejected or completed, clear old session.
+                     */
+                    session()->forget([
+                        'password_reset_request_id',
+                        'password_reset_request_user_id',
+                        'password_reset_request_token',
+                        'approved_password_reset_request_id',
+                        'password_reset_approved_user_id',
+                    ]);
+                }
+            }
+        }
+
+        /*
+         * ----------------------------------------------------------
+         * 2. IMPORTANT:
+         *    Check for an already-approved request for this user.
+         *
+         * This allows the user to return later, enter the email again,
+         * and continue after Admin approval even if the old browser
+         * session data was lost.
+         * ----------------------------------------------------------
+         */
+        $approvedRequest = PasswordResetRequest::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->latest()
+            ->first();
+
+        if ($approvedRequest) {
+
+            /*
+             * Generate a fresh secure token for the current session.
+             */
+            $requestToken = Str::random(64);
+
+            /*
+             * Store only the HASH in the database.
+             */
+            $approvedRequest->update([
+                'request_token_hash' => Hash::make($requestToken),
+            ]);
+
+            /*
+             * Store the raw token only in the current session.
+             */
+            session([
+                'password_reset_request_id' => $approvedRequest->id,
+                'password_reset_request_user_id' => $user->id,
+                'password_reset_request_token' => $requestToken,
+
+                'approved_password_reset_request_id' => $approvedRequest->id,
+                'password_reset_approved_user_id' => $user->id,
+            ]);
+
+            return redirect()
+                ->route('password.otp.reset')
+                ->with(
+                    'status',
+                    'Your password reset request has been approved. You can now choose a new password.'
+                );
+        }
+
+        /*
+         * ----------------------------------------------------------
+         * 3. Check for an existing pending request.
+         * ----------------------------------------------------------
+         */
+        $pendingRequest = PasswordResetRequest::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->latest()
+            ->first();
+
+        if ($pendingRequest) {
+            return back()
+                ->with(
+                    'status',
+                    'A password reset request is already pending administrator approval.'
+                );
+        }
+
+        /*
+         * ----------------------------------------------------------
+         * 4. Create a new password reset request.
+         * ----------------------------------------------------------
+         */
+
+        /*
+         * Create a secure random request token.
+         */
+        $requestToken = Str::random(64);
+
+        /*
+         * Create the password reset request.
+         *
+         * Only the HASH of the token is stored.
+         */
+        $passwordResetRequest = PasswordResetRequest::create([
+            'user_id' => $user->id,
+            'status' => 'pending',
+            'approved_by' => null,
+            'approved_at' => null,
+            'rejected_at' => null,
+            'admin_note' => null,
+            'request_token_hash' => Hash::make($requestToken),
         ]);
 
         /*
-         * DEMO MODE
-         *
-         * The OTP will be shown temporarily through the session.
-         * Later we can replace this with real email delivery.
+         * Store the raw token only in the current session.
          */
-        return redirect()
-            ->route('password.otp.verify')
-            ->with([
-                'otp_email' => $email,
-                'demo_otp' => $otp,
-            ]);
+        session([
+            'password_reset_request_id' => $passwordResetRequest->id,
+            'password_reset_request_user_id' => $user->id,
+            'password_reset_request_token' => $requestToken,
+        ]);
+
+        return back()
+            ->with(
+                'status',
+                'Your password reset request has been submitted for administrator approval.'
+            );
     }
 
     /**
      * Show OTP verification page.
+     *
+     * Only the Demo Member can reach this page.
      */
     public function showVerify(): View|RedirectResponse
     {
-        if (! session()->has('otp_email')) {
+        $email = session('otp_email');
+
+        if (! $email) {
             return redirect()
                 ->route('password.request')
                 ->withErrors([
@@ -122,14 +338,36 @@ class PasswordResetOtpController extends Controller
                 ]);
         }
 
+        /*
+         * Verify that the account is still an eligible Demo Member.
+         */
+        $user = User::where('email', $email)->first();
+
+        if (
+            ! $user ||
+            ! $user->hasRole('Member') ||
+            ! $user->is_demo_member
+        ) {
+            session()->forget([
+                'otp_email',
+                'demo_otp',
+            ]);
+
+            return redirect()
+                ->route('password.request')
+                ->withErrors([
+                    'email' => 'This account is not eligible for password recovery.',
+                ]);
+        }
+
         return view('auth.verify-otp', [
-            'email' => session('otp_email'),
+            'email' => $email,
             'demoOtp' => session('demo_otp'),
         ]);
     }
 
     /**
-     * Verify the submitted OTP.
+     * Verify the submitted Demo OTP.
      */
     public function verify(Request $request): RedirectResponse
     {
@@ -147,21 +385,39 @@ class PasswordResetOtpController extends Controller
             ],
         ]);
 
-        /*
-         * Normalize the email.
-         */
         $email = Str::lower($validated['email']);
 
         /*
-         * Find the latest OTP for this email.
+         * Verify that this account is still an eligible Demo Member.
+         */
+        $user = User::where('email', $email)->first();
+
+        if (
+            ! $user ||
+            ! $user->hasRole('Member') ||
+            ! $user->is_demo_member
+        ) {
+            session()->forget([
+                'otp_email',
+                'demo_otp',
+                'password_reset_verified_email',
+                'password_reset_verified_user_id',
+            ]);
+
+            return redirect()
+                ->route('password.request')
+                ->withErrors([
+                    'email' => 'This account is not eligible for password recovery.',
+                ]);
+        }
+
+        /*
+         * Find the latest OTP.
          */
         $otpRecord = PasswordResetOtp::where('email', $email)
             ->latest()
             ->first();
 
-        /*
-         * No active OTP exists.
-         */
         if (! $otpRecord) {
             return redirect()
                 ->route('password.request')
@@ -210,26 +466,27 @@ class PasswordResetOtpController extends Controller
         }
 
         /*
-         * Mark OTP as verified.
+         * OTP verified successfully.
          */
         $otpRecord->update([
             'verified_at' => now(),
         ]);
 
         /*
-         * Store the verified email temporarily.
+         * Store verified user information temporarily.
          */
         session([
             'password_reset_verified_email' => $email,
+            'password_reset_verified_user_id' => $user->id,
         ]);
 
         /*
-         * Remove the OTP record after successful verification.
+         * Remove OTP record.
          */
         $otpRecord->delete();
 
         /*
-         * Clear the old OTP session values.
+         * Clear old OTP session values.
          */
         session()->forget([
             'otp_email',
@@ -241,28 +498,125 @@ class PasswordResetOtpController extends Controller
 
     /**
      * Show the new password form.
+     *
+     * Supports:
+     * 1. Demo Member after successful OTP verification.
+     * 2. Admin / Manager after Admin approval.
      */
     public function showReset(): View|RedirectResponse
     {
-        if (! session()->has('password_reset_verified_email')) {
-            return redirect()
-                ->route('password.request')
-                ->withErrors([
-                    'email' => 'Please verify your identity first.',
-                ]);
+        /*
+         * ==========================================================
+         * DEMO MEMBER
+         * ==========================================================
+         */
+        $verifiedEmail = session('password_reset_verified_email');
+
+        if ($verifiedEmail) {
+            $user = User::where('email', $verifiedEmail)->first();
+
+            if (
+                $user &&
+                $user->hasRole('Member') &&
+                $user->is_demo_member
+            ) {
+                return view('auth.otp-reset-password');
+            }
+
+            session()->forget([
+                'password_reset_verified_email',
+                'password_reset_verified_user_id',
+            ]);
         }
 
-        return view('auth.otp-reset-password');
+        /*
+         * ==========================================================
+         * ADMIN / MANAGER
+         * ==========================================================
+         *
+         * Require an approved request belonging to the
+         * current browser session.
+         */
+        $requestId = session('approved_password_reset_request_id');
+        $userId = session('password_reset_approved_user_id');
+        $requestToken = session('password_reset_request_token');
+
+        if ($requestId && $userId && $requestToken) {
+            $passwordResetRequest = PasswordResetRequest::with('user')
+                ->where('id', $requestId)
+                ->where('user_id', $userId)
+                ->where('status', 'approved')
+                ->first();
+
+            if (
+                $passwordResetRequest &&
+                $passwordResetRequest->user &&
+                $passwordResetRequest->request_token_hash &&
+                Hash::check(
+                    $requestToken,
+                    $passwordResetRequest->request_token_hash
+                )
+            ) {
+                return view('auth.otp-reset-password');
+            }
+
+            session()->forget([
+                'approved_password_reset_request_id',
+                'password_reset_approved_user_id',
+                'password_reset_request_token',
+            ]);
+        }
+
+        return redirect()
+            ->route('password.request')
+            ->withErrors([
+                'email' => 'Your password reset request has not been approved.',
+            ]);
     }
 
     /**
-     * Update the user's password after successful OTP verification.
+     * Update the user's password.
      */
     public function resetPassword(Request $request): RedirectResponse
     {
-        $email = session('password_reset_verified_email');
+        /*
+         * ==========================================================
+         * DEMO MEMBER RESET
+         * ==========================================================
+         */
+        $verifiedEmail = session('password_reset_verified_email');
 
-        if (! $email) {
+        if ($verifiedEmail) {
+            $user = User::where('email', $verifiedEmail)->first();
+
+            if (
+                $user &&
+                $user->hasRole('Member') &&
+                $user->is_demo_member
+            ) {
+                return $this->performPasswordReset(
+                    $request,
+                    $user,
+                    'demo'
+                );
+            }
+
+            session()->forget([
+                'password_reset_verified_email',
+                'password_reset_verified_user_id',
+            ]);
+        }
+
+        /*
+         * ==========================================================
+         * ADMIN APPROVED RESET
+         * ==========================================================
+         */
+        $requestId = session('approved_password_reset_request_id');
+        $userId = session('password_reset_approved_user_id');
+        $requestToken = session('password_reset_request_token');
+
+        if (! $requestId || ! $userId || ! $requestToken) {
             return redirect()
                 ->route('password.request')
                 ->withErrors([
@@ -270,6 +624,58 @@ class PasswordResetOtpController extends Controller
                 ]);
         }
 
+        /*
+         * Find the approved request.
+         */
+        $passwordResetRequest = PasswordResetRequest::with('user')
+            ->where('id', $requestId)
+            ->where('user_id', $userId)
+            ->where('status', 'approved')
+            ->first();
+
+        /*
+         * Verify the request token.
+         */
+        if (
+            ! $passwordResetRequest ||
+            ! $passwordResetRequest->user ||
+            ! $passwordResetRequest->request_token_hash ||
+            ! Hash::check(
+                $requestToken,
+                $passwordResetRequest->request_token_hash
+            )
+        ) {
+            session()->forget([
+                'approved_password_reset_request_id',
+                'password_reset_approved_user_id',
+                'password_reset_request_token',
+            ]);
+
+            return redirect()
+                ->route('password.request')
+                ->withErrors([
+                    'email' => 'This password reset request is no longer valid.',
+                ]);
+        }
+
+        /*
+         * Change the password.
+         */
+        return $this->performPasswordReset(
+            $request,
+            $passwordResetRequest->user,
+            'approved'
+        );
+    }
+
+    /**
+     * Perform the actual password update.
+     */
+    private function performPasswordReset(
+        Request $request,
+        User $user,
+        string $flow
+    ): RedirectResponse {
         $validated = $request->validate([
             'password' => [
                 'required',
@@ -279,16 +685,9 @@ class PasswordResetOtpController extends Controller
             ],
         ]);
 
-        $user = User::where('email', $email)->first();
-
-        if (! $user) {
-            return redirect()
-                ->route('password.request')
-                ->withErrors([
-                    'email' => 'Unable to complete the password reset.',
-                ]);
-        }
-
+        /*
+         * Update password.
+         */
         $user->update([
             'password' => Hash::make($validated['password']),
         ]);
@@ -296,12 +695,39 @@ class PasswordResetOtpController extends Controller
         /*
          * Remove any remaining OTP records.
          */
-        PasswordResetOtp::where('email', $email)->delete();
+        PasswordResetOtp::where('email', $user->email)->delete();
 
         /*
-         * Clear password reset session.
+         * If this was an Admin-approved request,
+         * mark it as completed.
          */
-        session()->forget('password_reset_verified_email');
+        if ($flow === 'approved') {
+            $requestId = session('approved_password_reset_request_id');
+
+            if ($requestId) {
+                PasswordResetRequest::where('id', $requestId)
+                    ->where('user_id', $user->id)
+                    ->where('status', 'approved')
+                    ->update([
+                        'status' => 'completed',
+                    ]);
+            }
+        }
+
+        /*
+         * Clear all password-reset session data.
+         */
+        session()->forget([
+            'password_reset_verified_email',
+            'password_reset_verified_user_id',
+            'approved_password_reset_request_id',
+            'password_reset_approved_user_id',
+            'password_reset_request_id',
+            'password_reset_request_user_id',
+            'password_reset_request_token',
+            'otp_email',
+            'demo_otp',
+        ]);
 
         return redirect()
             ->route('login')

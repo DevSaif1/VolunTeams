@@ -157,6 +157,7 @@ class DatabaseSeeder extends Seeder
                     'name' => $data[0],
                     'password' => Hash::make('password123'),
                     'email_verified_at' => now(),
+                    'is_demo_member' => $data[1] === 'member@volunteams.com',
                 ]
             );
 

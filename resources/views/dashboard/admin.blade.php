@@ -404,7 +404,7 @@
                 </div>
 
 
-                <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
+                <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-9">
 
                     {{-- Users & Members --}}
                     <a
@@ -588,6 +588,33 @@
                         </span>
 
                     </a>
+
+                    {{-- Password Reset Requests --}}
+                    <a
+                        href="{{ route('admin.password-reset-requests.index') }}"
+                        class="group flex min-h-32 flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-5 text-center transition duration-200 hover:-translate-y-1 hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-md"
+                    >
+                        <span class="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm ring-1 ring-slate-200 transition duration-200 group-hover:scale-105">
+                            <svg
+                                class="h-5 w-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.8"
+                                    d="M12 15v2m-3 0h6m-7-4h8a2 2 0 002-2V7a2 2 0 00-2-2H8a2 2 0 00-2 2v4a2 2 0 002 2zm-2 8h12a2 2 0 002-2v-5H4v5a2 2 0 002 2z"
+                                />
+                            </svg>
+                        </span>
+
+                        <span class="text-sm font-semibold leading-5 text-slate-700 transition group-hover:text-emerald-700">
+                            Password Reset
+                        </span>
+                    </a>
+
 
                     {{-- Reports & Statistics --}}
                     <a

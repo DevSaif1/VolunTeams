@@ -6,12 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles; // 1. استدعاء الميزة هنا
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles; // 2. إضافة HasRoles هنا
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -19,11 +19,11 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-    'name',
-    'email',
-    'password',
-    'profile_photo_path',
-];
+        'name',
+        'email',
+        'password',
+        'profile_photo_path',
+    ];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -45,6 +45,27 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_demo_member' => 'boolean',
+            'must_change_password' => 'boolean',
         ];
+    }
+
+    /**
+     * Password reset requests submitted by this user.
+     */
+    public function passwordResetRequests()
+    {
+        return $this->hasMany(PasswordResetRequest::class);
+    }
+
+    /**
+     * Password reset requests approved by this user.
+     */
+    public function approvedPasswordResetRequests()
+    {
+        return $this->hasMany(
+            PasswordResetRequest::class,
+            'approved_by'
+        );
     }
 }
