@@ -14,6 +14,13 @@ class ReportController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
+
+        // السماح لـ Super Admin و Admin و Demo Admin بعرض التقارير والإحصائيات
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
+            abort(403);
+        }
+
         // General statistics
         $totalVolunteers = User::role('Member')->count();
         $totalTeams = Team::count();

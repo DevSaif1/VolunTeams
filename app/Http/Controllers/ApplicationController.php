@@ -18,7 +18,8 @@ class ApplicationController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('Admin')) {
+        // Super Admin, Admin, and Demo Admin can view all applications.
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
 
             $applications = Application::with(['user', 'opportunity.team'])
                 ->latest()
@@ -53,26 +54,26 @@ class ApplicationController extends Controller
      * Show the application form.
      * Members can apply for themselves only.
      */
-            public function create(Request $request): View
-        {
-            $user = auth()->user();
+    public function create(Request $request): View
+    {
+        $user = auth()->user();
 
-            if (! $user->hasRole('Member')) {
-                abort(403);
-            }
-
-            $opportunities = Opportunity::where('is_active', true)
-                ->where('status', 'published')
-                ->orderBy('title')
-                ->get();
-
-            $selectedOpportunityId = $request->query('opportunity_id');
-
-            return view('applications.create', compact(
-                'opportunities',
-                'selectedOpportunityId'
-            ));
+        if (! $user->hasRole('Member')) {
+            abort(403);
         }
+
+        $opportunities = Opportunity::where('is_active', true)
+            ->where('status', 'published')
+            ->orderBy('title')
+            ->get();
+
+        $selectedOpportunityId = $request->query('opportunity_id');
+
+        return view('applications.create', compact(
+            'opportunities',
+            'selectedOpportunityId'
+        ));
+    }
 
 
     /**
@@ -141,9 +142,9 @@ class ApplicationController extends Controller
         ]);
 
         /*
-         * Admin can view everything.
+         * Super Admin, Admin, and Demo Admin can view everything.
          */
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             return view('applications.show', compact('application'));
         }
 
@@ -175,7 +176,7 @@ class ApplicationController extends Controller
         if (
             ! $user->hasRole('Member') &&
             ! $user->hasRole('Team Manager') &&
-            ! $user->hasRole('Admin')
+            ! $user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])
         ) {
             abort(403);
         }
@@ -186,7 +187,7 @@ class ApplicationController extends Controller
 
     /**
      * Show the edit form.
-     * Only Admin and the correct Team Manager can edit.
+     * Only Admin, Super Admin and the correct Team Manager can edit.
      */
     public function edit(Application $application): View
     {
@@ -203,7 +204,7 @@ class ApplicationController extends Controller
 
     /**
      * Update an application.
-     * Only Admin and the responsible Team Manager can update.
+     * Only Admin, Super Admin and the responsible Team Manager can update.
      */
     public function update(
         Request $request,
@@ -233,7 +234,7 @@ class ApplicationController extends Controller
     /**
      * Delete / withdraw an application.
      *
-     * Admin:
+     * Admin / Super Admin:
      *     Can delete any application.
      *
      * Member:
@@ -247,9 +248,9 @@ class ApplicationController extends Controller
         $user = auth()->user();
 
         /*
-         * Admin can delete any application.
+         * Super Admin & Admin can delete any application.
          */
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             $application->delete();
 
             return redirect()
@@ -285,9 +286,9 @@ class ApplicationController extends Controller
         $user = auth()->user();
 
         /*
-         * Admin can manage everything.
+         * Super Admin & Admin can manage everything.
          */
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             return;
         }
 
@@ -310,7 +311,7 @@ class ApplicationController extends Controller
         }
 
         /*
-         * Members are never allowed to edit applications.
+         * Members and Demo Admin are never allowed to edit applications.
          */
         abort(403);
     }

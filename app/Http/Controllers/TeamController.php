@@ -15,7 +15,7 @@ class TeamController extends Controller
     /**
      * Display a paginated listing of teams.
      *
-     * Admin: all teams
+     * Super Admin / Admin / Demo Admin: all teams
      * Team Manager: their own teams
      * Member: all teams
      */
@@ -23,8 +23,8 @@ class TeamController extends Controller
     {
         $user = auth()->user();
 
-        // Admin can view all teams.
-        if ($user->hasRole('Admin')) {
+        // Super Admin, Admin, and Demo Admin can view all teams.
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             $teams = Team::with('manager')
                 ->withCount(['opportunities', 'members'])
                 ->latest()
@@ -60,13 +60,13 @@ class TeamController extends Controller
     /**
      * Show the form for creating a new team.
      *
-     * Only Admin can create teams.
+     * Only Super Admin and Admin can create teams.
      */
     public function create(): View
     {
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 
@@ -81,13 +81,13 @@ class TeamController extends Controller
     /**
      * Store a newly created team.
      *
-     * Only Admin can create teams.
+     * Only Super Admin and Admin can create teams.
      */
     public function store(StoreTeamRequest $request): RedirectResponse
     {
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 
@@ -118,7 +118,7 @@ class TeamController extends Controller
     /**
      * Display the specified team.
      *
-     * Admin: any team
+     * Super Admin / Admin / Demo Admin: any team
      * Team Manager: their own team
      * Member: any team
      */
@@ -126,8 +126,8 @@ class TeamController extends Controller
     {
         $user = auth()->user();
 
-        // Admin can view any team.
-        if ($user->hasRole('Admin')) {
+        // Super Admin, Admin, and Demo Admin can view any team.
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             $team->load(['manager', 'opportunities']);
 
             return view('teams.show', compact('team'));
@@ -157,13 +157,13 @@ class TeamController extends Controller
     /**
      * Show the form for editing the specified team.
      *
-     * Only Admin can edit teams.
+     * Only Super Admin and Admin can edit teams.
      */
     public function edit(Team $team): View
     {
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 
@@ -178,7 +178,7 @@ class TeamController extends Controller
     /**
      * Update the specified team.
      *
-     * Only Admin can update teams.
+     * Only Super Admin and Admin can update teams.
      */
     public function update(
         UpdateTeamRequest $request,
@@ -186,7 +186,7 @@ class TeamController extends Controller
     ): RedirectResponse {
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 
@@ -224,13 +224,13 @@ class TeamController extends Controller
     /**
      * Remove the specified team.
      *
-     * Only Admin can delete teams.
+     * Only Super Admin and Admin can delete teams.
      */
     public function destroy(Team $team): RedirectResponse
     {
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 

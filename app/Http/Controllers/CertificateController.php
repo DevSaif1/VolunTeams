@@ -22,8 +22,8 @@ class CertificateController extends Controller
     {
         $user = auth()->user();
 
-        // Admin can view all certificates.
-        if ($user->hasRole('Admin')) {
+        // Super Admin, Admin, and Demo Admin can view all certificates.
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             $certificates = Certificate::with(['user', 'opportunity', 'issuer'])
                 ->latest()
                 ->paginate(10);
@@ -77,18 +77,18 @@ class CertificateController extends Controller
     /**
      * Show the form for issuing a new certificate.
      *
-     * Only Admin and Team Manager are allowed.
+     * Only Admin, Super Admin and Team Manager are allowed.
      */
     public function create(): View
     {
         $user = auth()->user();
 
-        if (! $user->hasAnyRole(['Admin', 'Team Manager'])) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 
-        // Admin can issue certificates for all users/opportunities.
-        if ($user->hasRole('Admin')) {
+        // Super Admin & Admin can issue certificates for all users/opportunities.
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             $users = User::role('Member')
                 ->select(['id', 'name', 'email'])
                 ->orderBy('name')
@@ -138,13 +138,13 @@ class CertificateController extends Controller
     /**
      * Store a newly created certificate.
      *
-     * Only Admin and Team Manager are allowed.
+     * Only Admin, Super Admin and Team Manager are allowed.
      */
     public function store(StoreCertificateRequest $request): RedirectResponse
     {
         $user = auth()->user();
 
-        if (! $user->hasAnyRole(['Admin', 'Team Manager'])) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 
@@ -192,8 +192,8 @@ class CertificateController extends Controller
     {
         $user = auth()->user();
 
-        // Admin can view any certificate.
-        if ($user->hasRole('Admin')) {
+        // Super Admin, Admin, and Demo Admin can view any certificate.
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             $certificate->load(['user', 'opportunity', 'issuer']);
 
             return view('certificates.show', compact('certificate'));
@@ -235,13 +235,13 @@ class CertificateController extends Controller
     /**
      * Show the form for editing the specified certificate.
      *
-     * Only Admin and Team Manager are allowed.
+     * Only Admin, Super Admin and Team Manager are allowed.
      */
     public function edit(Certificate $certificate): View
     {
         $user = auth()->user();
 
-        if (! $user->hasAnyRole(['Admin', 'Team Manager'])) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 
@@ -259,7 +259,7 @@ class CertificateController extends Controller
             }
         }
 
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             $users = User::role('Member')
                 ->select(['id', 'name', 'email'])
                 ->orderBy('name')
@@ -301,7 +301,7 @@ class CertificateController extends Controller
     /**
      * Update the specified certificate.
      *
-     * Only Admin and Team Manager are allowed.
+     * Only Admin, Super Admin and Team Manager are allowed.
      */
     public function update(
         UpdateCertificateRequest $request,
@@ -309,7 +309,7 @@ class CertificateController extends Controller
     ): RedirectResponse {
         $user = auth()->user();
 
-        if (! $user->hasAnyRole(['Admin', 'Team Manager'])) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 
@@ -357,28 +357,14 @@ class CertificateController extends Controller
     /**
      * Remove the specified certificate.
      *
-     * Only Admin and Team Manager are allowed.
+     * Only Admin and Super Admin can delete.
      */
     public function destroy(Certificate $certificate): RedirectResponse
     {
         $user = auth()->user();
 
-        if (! $user->hasAnyRole(['Admin', 'Team Manager'])) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
-        }
-
-        if ($user->hasRole('Team Manager')) {
-            $teamIds = Team::where('manager_id', $user->id)->pluck('id');
-
-            $allowed = Certificate::where('id', $certificate->id)
-                ->whereHas('opportunity', function ($query) use ($teamIds) {
-                    $query->whereIn('team_id', $teamIds);
-                })
-                ->exists();
-
-            if (! $allowed) {
-                abort(403);
-            }
         }
 
         if (

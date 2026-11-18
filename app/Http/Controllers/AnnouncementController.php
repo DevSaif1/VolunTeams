@@ -13,7 +13,7 @@ class AnnouncementController extends Controller
     /**
      * Display a paginated listing of announcements.
      *
-     * Admin: can view all announcements.
+     * Admin, Super Admin, Demo Admin: can view all announcements.
      * Team Manager: can view active announcements.
      * Member: can view active announcements.
      */
@@ -22,9 +22,9 @@ class AnnouncementController extends Controller
     $user = auth()->user();
 
     /*
-     * Admin can view all announcements.
+     * Super Admin, Admin, and Demo Admin can view all announcements.
      */
-    if ($user->hasRole('Admin')) {
+    if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
 
         $announcements = Announcement::with('creator')
             ->latest()
@@ -55,13 +55,13 @@ class AnnouncementController extends Controller
     /**
      * Show the form for creating a new announcement.
      *
-     * Admin only.
+     * Super Admin and Admin only.
      */
     public function create(): View
     {
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 
@@ -72,7 +72,7 @@ class AnnouncementController extends Controller
     /**
      * Store a newly created announcement.
      *
-     * Admin only.
+     * Super Admin and Admin only.
      */
     public function store(
         StoreAnnouncementRequest $request
@@ -80,14 +80,14 @@ class AnnouncementController extends Controller
 
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 
         $validated = $request->validated();
 
         /*
-         * The creator is always the authenticated Admin.
+         * The creator is always the authenticated Admin/Super Admin.
          * It must never come from the form.
          */
         $validated['created_by'] = $user->id;
@@ -103,7 +103,7 @@ class AnnouncementController extends Controller
     /**
      * Display the specified announcement.
      *
-     * Admin: can view any announcement.
+     * Admin, Super Admin, Demo Admin: can view any announcement.
      * Team Manager: can view active announcements.
      * Member: can view active announcements.
      */
@@ -114,9 +114,9 @@ class AnnouncementController extends Controller
     $user = auth()->user();
 
     /*
-     * Admin can view any announcement.
+     * Super Admin, Admin, and Demo Admin can view any announcement.
      */
-    if ($user->hasRole('Admin')) {
+    if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
 
         $announcement->load('creator');
 
@@ -152,7 +152,7 @@ class AnnouncementController extends Controller
     /**
      * Show the form for editing the specified announcement.
      *
-     * Admin only.
+     * Super Admin and Admin only.
      */
     public function edit(
         Announcement $announcement
@@ -160,7 +160,7 @@ class AnnouncementController extends Controller
 
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 
@@ -174,7 +174,7 @@ class AnnouncementController extends Controller
     /**
      * Update the specified announcement.
      *
-     * Admin only.
+     * Super Admin and Admin only.
      */
     public function update(
         UpdateAnnouncementRequest $request,
@@ -183,7 +183,7 @@ class AnnouncementController extends Controller
 
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 
@@ -203,7 +203,7 @@ class AnnouncementController extends Controller
     /**
      * Remove the specified announcement.
      *
-     * Admin only.
+     * Super Admin and Admin only.
      */
     public function destroy(
         Announcement $announcement
@@ -211,7 +211,7 @@ class AnnouncementController extends Controller
 
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 

@@ -15,7 +15,7 @@ class OpportunityController extends Controller
     /**
      * Display a paginated listing of opportunities.
      *
-     * Admin: all opportunities
+     * Super Admin, Admin, Demo Admin: all opportunities
      * Team Manager: opportunities belonging to their teams
      * Member: active opportunities
      */
@@ -23,8 +23,8 @@ class OpportunityController extends Controller
     {
         $user = auth()->user();
 
-        // Admin can view all opportunities.
-        if ($user->hasRole('Admin')) {
+        // Super Admin, Admin, and Demo Admin can view all opportunities.
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             $opportunities = Opportunity::with('team')
                 ->withCount(['applications', 'volunteerHours'])
                 ->latest()
@@ -63,18 +63,18 @@ class OpportunityController extends Controller
     /**
      * Show the form for creating a new opportunity.
      *
-     * Only Admin and Team Manager are allowed.
+     * Only Admin, Super Admin, and Team Manager are allowed.
      */
     public function create(): View
     {
         $user = auth()->user();
 
-        if (! $user->hasAnyRole(['Admin', 'Team Manager'])) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 
-        // Admin can create opportunities for any team.
-        if ($user->hasRole('Admin')) {
+        // Super Admin & Admin can create opportunities for any team.
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             $teams = Team::select(['id', 'name'])
                 ->orderBy('name')
                 ->get();
@@ -94,13 +94,13 @@ class OpportunityController extends Controller
     /**
      * Store a newly created opportunity.
      *
-     * Only Admin and Team Manager are allowed.
+     * Only Admin, Super Admin, and Team Manager are allowed.
      */
     public function store(StoreOpportunityRequest $request): RedirectResponse
     {
         $user = auth()->user();
 
-        if (! $user->hasAnyRole(['Admin', 'Team Manager'])) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 
@@ -136,15 +136,15 @@ class OpportunityController extends Controller
     /**
      * Display the specified opportunity.
      *
-     * Admin and Manager can view according to their scope.
+     * Super Admin, Admin, Demo Admin and Manager can view according to their scope.
      * Member can view active opportunities.
      */
     public function show(Opportunity $opportunity): View
     {
         $user = auth()->user();
 
-        // Admin can view any opportunity.
-        if ($user->hasRole('Admin')) {
+        // Super Admin, Admin, and Demo Admin can view any opportunity.
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             $opportunity->load([
                 'team',
                 'applications',
@@ -194,13 +194,13 @@ class OpportunityController extends Controller
     /**
      * Show the form for editing the specified opportunity.
      *
-     * Only Admin and Team Manager are allowed.
+     * Only Admin, Super Admin, and Team Manager are allowed.
      */
     public function edit(Opportunity $opportunity): View
     {
         $user = auth()->user();
 
-        if (! $user->hasAnyRole(['Admin', 'Team Manager'])) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 
@@ -219,7 +219,7 @@ class OpportunityController extends Controller
                 ->orderBy('name')
                 ->get();
         } else {
-            // Admin can edit opportunities from any team.
+            // Super Admin & Admin can edit opportunities from any team.
             $teams = Team::select(['id', 'name'])
                 ->orderBy('name')
                 ->get();
@@ -234,7 +234,7 @@ class OpportunityController extends Controller
     /**
      * Update the specified opportunity.
      *
-     * Only Admin and Team Manager are allowed.
+     * Only Admin, Super Admin, and Team Manager are allowed.
      */
     public function update(
         UpdateOpportunityRequest $request,
@@ -242,7 +242,7 @@ class OpportunityController extends Controller
     ): RedirectResponse {
         $user = auth()->user();
 
-        if (! $user->hasAnyRole(['Admin', 'Team Manager'])) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 
@@ -304,13 +304,13 @@ class OpportunityController extends Controller
     /**
      * Remove the specified opportunity from storage.
      *
-     * Only Admin and Team Manager are allowed.
+     * Only Admin, Super Admin, and Team Manager are allowed.
      */
     public function destroy(Opportunity $opportunity): RedirectResponse
     {
         $user = auth()->user();
 
-        if (! $user->hasAnyRole(['Admin', 'Team Manager'])) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 

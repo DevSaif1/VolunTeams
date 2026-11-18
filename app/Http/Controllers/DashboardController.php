@@ -19,7 +19,7 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             $totalVolunteers = User::role('Member')->count();
             $totalTeams = Team::count();
             $activeTeams = Team::where('is_active', true)->count();

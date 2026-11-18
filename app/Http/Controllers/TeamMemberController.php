@@ -14,7 +14,8 @@ class TeamMemberController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('Admin')) {
+        // Super Admin, Admin, and Demo Admin can view all team members.
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             $teamMembers = TeamMember::with(['team', 'user'])
                 ->paginate(10);
 
@@ -38,7 +39,7 @@ class TeamMemberController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             $teams = Team::all();
             $users = User::all();
 
@@ -74,7 +75,7 @@ class TeamMemberController extends Controller
 
         $user = auth()->user();
 
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             // Admin can add members to any team.
         } elseif ($user->hasRole('Team Manager')) {
             $teamBelongsToManager = Team::where('id', $validated['team_id'])
@@ -98,7 +99,8 @@ class TeamMemberController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('Admin')) {
+        // Super Admin, Admin, and Demo Admin can view any team member.
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             // Admin can view any team member.
         } elseif ($user->hasRole('Team Manager')) {
             if ($teamMember->team?->manager_id !== $user->id) {
@@ -117,7 +119,7 @@ class TeamMemberController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             // Admin can edit any team member.
         } elseif ($user->hasRole('Team Manager')) {
             if ($teamMember->team?->manager_id !== $user->id) {
@@ -134,7 +136,7 @@ class TeamMemberController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             // Admin can update any team member.
         } elseif ($user->hasRole('Team Manager')) {
             if ($teamMember->team?->manager_id !== $user->id) {
@@ -159,7 +161,7 @@ class TeamMemberController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             // Admin can delete any team member.
         } elseif ($user->hasRole('Team Manager')) {
             if ($teamMember->team?->manager_id !== $user->id) {

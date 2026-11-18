@@ -5,22 +5,34 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {{-- Header --}}
-        <div class="mb-8">
-            <div class="flex items-center gap-2 mb-3">
-                <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+        <div class="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+            <div>
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
 
-                <span class="text-xs font-bold tracking-[0.18em] uppercase text-indigo-600">
-                    VolunTeams
-                </span>
+                    <span class="text-xs font-bold tracking-[0.18em] uppercase text-indigo-600">
+                        VolunTeams
+                    </span>
+                </div>
+
+                <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-slate-950">
+                    {{ __('users.title') }}
+                </h1>
+
+                <p class="mt-2 text-sm sm:text-base text-slate-500">
+                    {{ __('users.description') }}
+                </p>
             </div>
 
-            <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-slate-950">
-                {{ __('users.title') }}
-            </h1>
-
-            <p class="mt-2 text-sm sm:text-base text-slate-500">
-                {{ __('users.description') }}
-            </p>
+            <div>
+                <a href="{{ route('users.create') }}"
+                   class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    إنشاء حساب جديد / مسؤول
+                </a>
+            </div>
         </div>
 
 
@@ -210,10 +222,22 @@
                                         $role = $user->getRoleNames()->first();
 
                                         $roleConfig = match ($role) {
+                                            'Super Admin' => [
+                                                'label' => 'Super Admin',
+                                                'class' => 'bg-red-50 text-red-700 border-red-200',
+                                                'dot' => 'bg-red-500',
+                                            ],
+
                                             'Admin' => [
                                                 'label' => __('users.roles.admin'),
                                                 'class' => 'bg-violet-50 text-violet-700 border-violet-200',
                                                 'dot' => 'bg-violet-500',
+                                            ],
+
+                                            'Demo Admin' => [
+                                                'label' => 'Demo Admin',
+                                                'class' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                                'dot' => 'bg-amber-500',
                                             ],
 
                                             'Team Manager' => [

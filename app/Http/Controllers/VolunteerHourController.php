@@ -20,7 +20,8 @@ class VolunteerHourController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('Admin')) {
+        // Super Admin, Admin, and Demo Admin can view all volunteer hours.
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
 
             $volunteerHours = VolunteerHour::with([
                 'user',
@@ -66,21 +67,21 @@ class VolunteerHourController extends Controller
     /**
      * Show the form for logging new volunteer hours.
      *
-     * Only Admin and Team Manager can create records.
+     * Only Admin, Super Admin and Team Manager can create records.
      */
     public function create(): View
     {
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin') && ! $user->hasRole('Team Manager')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 
         /*
-         * Admin:
+         * Admin / Super Admin:
          * Can log hours for any volunteer and any active opportunity.
          */
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
 
             $users = User::select(['id', 'name', 'email'])
                 ->orderBy('name')
@@ -149,7 +150,7 @@ class VolunteerHourController extends Controller
     {
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin') && ! $user->hasRole('Team Manager')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin', 'Team Manager'])) {
             abort(403);
         }
 
@@ -216,9 +217,9 @@ class VolunteerHourController extends Controller
         ]);
 
         /*
-         * Admin can view any volunteer hour record.
+         * Super Admin, Admin, and Demo Admin can view any volunteer hour record.
          */
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin'])) {
             return view('volunteer_hours.show', compact('volunteerHour'));
         }
 
@@ -253,7 +254,7 @@ class VolunteerHourController extends Controller
     /**
      * Show the edit form.
      *
-     * Only Admin and the responsible Team Manager can edit.
+     * Only Admin, Super Admin and the responsible Team Manager can edit.
      */
     public function edit(VolunteerHour $volunteerHour): View
     {
@@ -262,10 +263,10 @@ class VolunteerHourController extends Controller
         $user = auth()->user();
 
         /*
-         * Admin:
+         * Admin / Super Admin:
          * Can edit using any volunteer and any opportunity.
          */
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
 
             $users = User::select(['id', 'name', 'email'])
                 ->orderBy('name')
@@ -390,7 +391,7 @@ class VolunteerHourController extends Controller
     /**
      * Remove a volunteer hour record.
      *
-     * Only Admin can delete.
+     * Only Admin and Super Admin can delete.
      */
     public function destroy(
         VolunteerHour $volunteerHour
@@ -398,7 +399,7 @@ class VolunteerHourController extends Controller
 
         $user = auth()->user();
 
-        if (! $user->hasRole('Admin')) {
+        if (! $user->hasAnyRole(['Super Admin', 'Admin'])) {
             abort(403);
         }
 
@@ -420,9 +421,9 @@ class VolunteerHourController extends Controller
         $user = auth()->user();
 
         /*
-         * Admin can manage everything.
+         * Super Admin & Admin can manage everything.
          */
-        if ($user->hasRole('Admin')) {
+        if ($user->hasAnyRole(['Super Admin', 'Admin'])) {
             return;
         }
 

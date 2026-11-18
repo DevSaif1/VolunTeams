@@ -23,7 +23,7 @@
                         :active="request()->routeIs('dashboard')"
                         class="text-sm whitespace-nowrap"
                     >
-                        @if(auth()->user()->hasRole('Admin'))
+                        @if(auth()->user()->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin']))
                             {{ __('dashboard.admin_dashboard') }}
                         @elseif(auth()->user()->hasRole('Team Manager'))
                             {{ __('dashboard.manager_dashboard') }}
@@ -34,7 +34,7 @@
 
 
                     {{-- ================= ADMIN ================= --}}
-                    @if(auth()->user()->hasRole('Admin'))
+                    @if(auth()->user()->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin']))
 
                         <x-nav-link
                             :href="route('users.index')"
@@ -395,7 +395,7 @@
                 :href="route('dashboard')"
                 :active="request()->routeIs('dashboard')"
             >
-                @if(auth()->user()->hasRole('Admin'))
+                @if(auth()->user()->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin']))
                     {{ __('dashboard.admin_dashboard') }}
                 @elseif(auth()->user()->hasRole('Team Manager'))
                     {{ __('dashboard.manager_dashboard') }}
@@ -406,7 +406,7 @@
 
 
             {{-- ================= ADMIN ================= --}}
-            @if(auth()->user()->hasRole('Admin'))
+            @if(auth()->user()->hasAnyRole(['Super Admin', 'Admin', 'Demo Admin']))
 
                 <x-responsive-nav-link :href="route('users.index')">
                     {{ __('dashboard.users_members') }}
@@ -451,7 +451,7 @@
                 </x-responsive-nav-link>
 
                 <x-responsive-nav-link :href="route('team-members.index')">
-                    {{ __('dashboard.team_members') }}
+                    {{ __('dashboard.team-members.*') }}
                 </x-responsive-nav-link>
 
                 <x-responsive-nav-link :href="route('opportunities.index')">

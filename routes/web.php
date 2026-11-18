@@ -64,9 +64,9 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 
-// Reports & Statistics - Admin Only
+// Reports & Statistics - Admin, Super Admin & Demo Admin (View Only)
 Route::get('/reports', [ReportController::class, 'index'])
-    ->middleware(['auth', 'verified', 'role:Admin'])
+    ->middleware(['auth', 'verified', 'role:Super Admin|Admin|Demo Admin'])
     ->name('reports.index');
 
 
@@ -116,17 +116,32 @@ Route::resource('team-members', TeamMemberController::class)
     ->middleware(['auth', 'verified']);
 
 
-// User Management
-// Admin only + recent password confirmation
+// User Management - View Only (Includes Demo Admin)
 Route::middleware([
     'auth',
     'verified',
-    'role:Admin',
-    'password.confirm',
+    'role:Super Admin|Admin|Demo Admin',
 ])->group(function () {
 
     Route::get('/users', [UserController::class, 'index'])
         ->name('users.index');
+
+});
+
+
+// User Management - Create & Edit Actions (Super Admin & Admin Only + Password Confirmation)
+Route::middleware([
+    'auth',
+    'verified',
+    'role:Super Admin|Admin',
+    'password.confirm',
+])->group(function () {
+
+    Route::get('/users/create', [UserController::class, 'create'])
+        ->name('users.create');
+
+    Route::post('/users', [UserController::class, 'store'])
+        ->name('users.store');
 
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])
         ->name('users.edit');
@@ -138,23 +153,31 @@ Route::middleware([
 
 
 // ========================================================================
-// Admin Password Reset Requests
+// Admin Password Reset Requests - View Only for Demo Admin
 // ========================================================================
-//
-// Only Admins can view, approve, or reject password reset requests.
-//
-
 Route::middleware([
     'auth',
     'verified',
-    'role:Admin',
+    'role:Super Admin|Admin|Demo Admin',
 ])->group(function () {
 
-    // View pending password reset requests
+    // View pending password reset requests (Demo Admin can view)
     Route::get(
         '/admin/password-reset-requests',
         [AdminPasswordResetController::class, 'index']
     )->name('admin.password-reset-requests.index');
+
+});
+
+
+// ========================================================================
+// Admin Password Reset Requests - Actions (Super Admin & Admin Only)
+// ========================================================================
+Route::middleware([
+    'auth',
+    'verified',
+    'role:Super Admin|Admin',
+])->group(function () {
 
     // Approve password reset request
     Route::post(
