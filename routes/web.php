@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use App\Models\Opportunity;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
 
 
 /*
@@ -243,6 +246,74 @@ Route::middleware('guest')->group(function () {
         [PasswordResetOtpController::class, 'resetPassword']
     )->name('password.otp.update');
 
+});
+
+
+// ========================================================================
+// Temporary Setup Route (قم بحذف هذا المسار بعد الدخول إليه لمرة واحدة فقط)
+// ========================================================================
+Route::get('/setup-demo-accounts', function () {
+    // 1. التأكد من إنشاء الأدوار الأساسية إن لم تكن موجودة
+    $roles = ['Super Admin', 'Admin', 'Demo Admin', 'Team Manager', 'Member'];
+    foreach ($roles as $roleName) {
+        Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+    }
+
+    // 2. ترقية حساب الأدمن الرئيسي إلى Super Admin
+    $superAdmin = User::where('email', 'admin@volunteams.com')->first();
+    if ($superAdmin) {
+        $superAdmin->syncRoles(['Super Admin']);
+    }
+
+    // 3. إنشاء حساب المعاينة الإدارية (Demo Admin)
+    $demoAdmin = User::updateOrCreate(
+        ['email' => 'demo.admin@volunteams.com'],
+        [
+            'name' => 'Demo Admin',
+            'password' => Hash::make('DemoAdmin@2026'),
+            'email_verified_at' => now(),
+            'is_demo_member' => true,
+        ]
+    );
+    $demoAdmin->syncRoles(['Demo Admin']);
+
+    // 4. إنشاء حساب المسؤول الإداري (Admin / Dean)
+    $deanAdmin = User::updateOrCreate(
+        ['email' => 'dean.admin@volunteams.com'],
+        [
+            'name' => 'Dean Admin',
+            'password' => Hash::make('DeanAdmin@2026'),
+            'email_verified_at' => now(),
+            'is_demo_member' => true,
+        ]
+    );
+    $deanAdmin->syncRoles(['Admin']);
+
+    // 5. إنشاء حساب مدير فريق تطوعي (Team Manager)
+    $demoManager = User::updateOrCreate(
+        ['email' => 'demo.manager@volunteams.com'],
+        [
+            'name' => 'Demo Team Manager',
+            'password' => Hash::make('DemoManager@2026'),
+            'email_verified_at' => now(),
+            'is_demo_member' => true,
+        ]
+    );
+    $demoManager->syncRoles(['Team Manager']);
+
+    // 6. إنشاء حساب طالب متطوع (Member)
+    $demoMember = User::updateOrCreate(
+        ['email' => 'demo.member@volunteams.com'],
+        [
+            'name' => 'Demo Member',
+            'password' => Hash::make('DemoMember@2026'),
+            'email_verified_at' => now(),
+            'is_demo_member' => true,
+        ]
+    );
+    $demoMember->syncRoles(['Member']);
+
+    return "تم إنشاء وتحديث كافة الحسابات والأدوار المطلوبة للعمادة بنجاح تام! يمكنك الآن تسجيل الدخول بالبيانات الموجودة في البطاقة.";
 });
 
 
